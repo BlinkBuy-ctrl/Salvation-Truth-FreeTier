@@ -1,0 +1,31 @@
+{
+  "expo": {
+    "name": "Salvation and Truth",
+    "slug": "salvation-and-truth",
+    "scheme": "salvationandtruth",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "backgroundColor": "#F8FAFC",
+    "plugins": ["expo-router"],
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "name": "Salvation and Truth",
+      "shortName": "S&T",
+      "themeColor": "#0F172A",
+      "backgroundColor": "#F8FAFC",
+      "display": "standalone"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.salvationandtruth.app"
+    },
+    "android": {
+      "package": "com.salvationandtruth.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#0F172A"
+      }
+    }
+  }
+}

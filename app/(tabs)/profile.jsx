@@ -1,6 +1,14 @@
 import { View, Text, Pressable } from "react-native";
+import { router } from "expo-router";
+import { ChevronRight } from "lucide-react-native";
 
 export default function ProfileScreen() {
+  const ROWS = [
+    { label: "My Reminders", route: "/reminders" },
+    { label: "Saved Voice Notes", route: null },
+    { label: "Notification Settings", route: "/settings" },
+  ];
+
   return (
     <View className="flex-1 bg-[#F8FAFC] px-6 pt-8">
       <View className="items-center">
@@ -16,17 +24,19 @@ export default function ProfileScreen() {
       </Pressable>
 
       <View className="mt-6 bg-white rounded-[20px] p-1">
-        {["My Reminders", "Saved Voice Notes", "Notification Settings"].map((label, i) => (
-          <View
-            key={label}
-            className="px-4 py-4"
+        {ROWS.map((row, i) => (
+          <Pressable
+            key={row.label}
+            onPress={() => row.route && router.push(row.route)}
+            className="flex-row items-center justify-between px-4 py-4 active:opacity-70"
             style={{
-              borderBottomWidth: i < 2 ? 1 : 0,
+              borderBottomWidth: i < ROWS.length - 1 ? 1 : 0,
               borderBottomColor: "#F1F5F9",
             }}
           >
-            <Text className="text-[#1E293B] text-[14px] font-medium">{label}</Text>
-          </View>
+            <Text className="text-[#1E293B] text-[14px] font-medium">{row.label}</Text>
+            <ChevronRight size={15} color="#CBD5E1" />
+          </Pressable>
         ))}
       </View>
     </View>

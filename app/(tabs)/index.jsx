@@ -9,6 +9,7 @@ import {
   Dimensions,
 } from "react-native";
 import { Play, Pause, Heart, MessageCircle, Share2, Gauge } from "lucide-react-native";
+import { ActivityIndicator } from "react-native";
 import { useAudioPlayer } from "../_layout";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -51,7 +52,8 @@ const FEED = [
     timeAgo: "Yesterday",
     title: "Standing on the Rock in Uncertain Seasons",
     durationLabel: "05:40",
-    durationSeconds: 340,
+    // Swap for the CMS/CDN-hosted sermon file URL once the backend is wired.
+    audioUri: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
   },
   {
     id: "p3",
@@ -68,7 +70,7 @@ const FEED = [
     timeAgo: "3 days ago",
     title: "The Weight of Unoffered Praise",
     durationLabel: "08:12",
-    durationSeconds: 492,
+    audioUri: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
   },
 ];
 
@@ -188,31 +190,51 @@ function AnnouncementsScroller() {
   );
 }
 
-function formatTime(totalSeconds) {
+function formatMillis(millis) {
+  const totalSeconds = Math.floor((millis || 0) / 1000);
   const m = Math.floor(totalSeconds / 60);
-  const s = Math.floor(totalSeconds % 60);
+  const s = totalSeconds % 60;
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
 function AudioPostCard({ post }) {
-  const { currentPlayingAudio, isPlaying, progressSeconds, playbackSpeed, playAudio, togglePlayback, cyclePlaybackSpeed } =
-    useAudioPlayer();
+  const {
+    currentTrack,
+    isPlaying,
+    isBuffering,
+    positionMillis,
+    durationMillis,
+    playbackRate,
+    play,
+    togglePlayback,
+    setRate,
+  } = useAudioPlayer();
 
-  const isThisPlaying = currentPlayingAudio?.id === post.id;
-  const displayProgress = isThisPlaying ? progressSeconds : 0;
-  const progressPct = Math.min(100, (displayProgress / post.durationSeconds) * 100);
+  const isThisTrack = currentTrack?.id === post.id;
+  const displayPositionMillis = isThisTrack ? positionMillis : 0;
+  const displayDurationMillis = isThisTrack && durationMillis ? durationMillis : null;
+  const progressPct = displayDurationMillis
+    ? Math.min(100, (displayPositionMillis / displayDurationMillis) * 100)
+    : 0;
+  const showBuffering = isThisTrack && isBuffering;
 
   const handlePlayPress = () => {
-    if (isThisPlaying) {
+    if (isThisTrack) {
       togglePlayback();
     } else {
-      playAudio({
+      play({
         id: post.id,
         title: post.title,
         author: post.author,
-        durationSeconds: post.durationSeconds,
+        audioUri: post.audioUri,
       });
     }
+  };
+
+  const handleRateCycle = () => {
+    const RATES = [1, 1.25, 1.5, 1.75, 2];
+    const idx = RATES.indexOf(isThisTrack ? playbackRate : 1);
+    setRate(RATES[(idx + 1) % RATES.length]);
   };
 
   return (
@@ -232,9 +254,12 @@ function AudioPostCard({ post }) {
         <View className="flex-row items-center">
           <Pressable
             onPress={handlePlayPress}
+            disabled={showBuffering}
             className="w-12 h-12 rounded-full bg-[#0F172A] items-center justify-center active:opacity-80"
           >
-            {isThisPlaying && isPlaying ? (
+            {showBuffering ? (
+              <ActivityIndicator size="small" color="#F8FAFC" />
+            ) : isThisTrack && isPlaying ? (
               <Pause size={18} color="#F8FAFC" fill="#F8FAFC" />
             ) : (
               <Play size={18} color="#F8FAFC" fill="#F8FAFC" style={{ marginLeft: 1 }} />
@@ -249,13 +274,13 @@ function AudioPostCard({ post }) {
           </View>
 
           <Pressable
-            onPress={cyclePlaybackSpeed}
+            onPress={handleRateCycle}
             className="bg-white px-2.5 py-1.5 rounded-full flex-row items-center ml-2"
             style={{ borderWidth: 1, borderColor: "#E2E8F0" }}
           >
             <Gauge size={12} color="#0F172A" />
             <Text className="text-[#0F172A] text-[11px] font-semibold ml-1">
-              {isThisPlaying ? `${playbackSpeed}x` : "1x"}
+              {isThisTrack ? `${playbackRate}x` : "1x"}
             </Text>
           </Pressable>
         </View>
@@ -269,10 +294,10 @@ function AudioPostCard({ post }) {
           </View>
           <View className="flex-row justify-between mt-1.5">
             <Text className="text-[#94A3B8] text-[11px] font-medium">
-              {formatTime(displayProgress)}
+              {formatMillis(displayPositionMillis)}
             </Text>
             <Text className="text-[#94A3B8] text-[11px] font-medium">
-              {post.durationLabel}
+              {displayDurationMillis ? formatMillis(displayDurationMillis) : post.durationLabel}
             </Text>
           </View>
         </View>

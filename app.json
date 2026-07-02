@@ -7,6 +7,12 @@
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "backgroundColor": "#F8FAFC",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0F172A"
+    },
     "plugins": ["expo-router"],
     "web": {
       "bundler": "metro",
@@ -15,7 +21,8 @@
       "shortName": "S&T",
       "themeColor": "#0F172A",
       "backgroundColor": "#F8FAFC",
-      "display": "standalone"
+      "display": "standalone",
+      "favicon": "./assets/favicon.png"
     },
     "ios": {
       "supportsTablet": true,
@@ -24,6 +31,7 @@
     "android": {
       "package": "com.salvationandtruth.app",
       "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0F172A"
       }
     }

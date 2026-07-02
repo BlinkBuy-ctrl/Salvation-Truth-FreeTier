@@ -1,9 +1,22 @@
-import { useState, useCallback, createContext, useContext } from "react";
+import { createContext, useContext, useState } from "react";
 import { View, Text, Pressable } from "react-native";
 import { Tabs } from "expo-router";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Home, BookOpen, User, Menu } from "lucide-react-native";
+import * as Notifications from "expo-notifications";
 import CustomAudioPlayer from "../components/CustomAudioPlayer";
+import ErrorBoundary from "../components/ErrorBoundary";
+import OfflineBanner from "../components/OfflineBanner";
+import HamburgerDrawer from "../components/HamburgerDrawer";
+import { useAudioEngine } from "../lib/useAudioEngine";
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
 
 const AudioPlayerContext = createContext(null);
 
@@ -16,55 +29,10 @@ export function useAudioPlayer() {
 }
 
 function AudioPlayerProvider({ children }) {
-  const [currentPlayingAudio, setCurrentPlayingAudio] = useState(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [progressSeconds, setProgressSeconds] = useState(0);
-  const [playbackSpeed, setPlaybackSpeed] = useState(1);
-
-  const playAudio = useCallback((audioItem) => {
-    setCurrentPlayingAudio(audioItem);
-    setProgressSeconds(0);
-    setIsPlaying(true);
-  }, []);
-
-  const togglePlayback = useCallback(() => {
-    setIsPlaying((prev) => !prev);
-  }, []);
-
-  const closePlayer = useCallback(() => {
-    setCurrentPlayingAudio(null);
-    setIsPlaying(false);
-    setProgressSeconds(0);
-  }, []);
-
-  const cyclePlaybackSpeed = useCallback(() => {
-    setPlaybackSpeed((prev) => {
-      if (prev === 1) return 1.25;
-      if (prev === 1.25) return 1.5;
-      if (prev === 1.5) return 2;
-      return 1;
-    });
-  }, []);
-
-  const seekTo = useCallback((seconds) => {
-    setProgressSeconds(seconds);
-  }, []);
-
-  const value = {
-    currentPlayingAudio,
-    isPlaying,
-    progressSeconds,
-    playbackSpeed,
-    playAudio,
-    togglePlayback,
-    closePlayer,
-    cyclePlaybackSpeed,
-    setProgressSeconds,
-    seekTo,
-  };
+  const engine = useAudioEngine();
 
   return (
-    <AudioPlayerContext.Provider value={value}>
+    <AudioPlayerContext.Provider value={engine}>
       {children}
       <CustomAudioPlayer />
     </AudioPlayerContext.Provider>
@@ -74,10 +42,7 @@ function AudioPlayerProvider({ children }) {
 function TopHeader({ onMenuPress }) {
   const insets = useSafeAreaInsets();
   return (
-    <View
-      style={{ paddingTop: insets.top }}
-      className="bg-[#F8FAFC] border-b border-[#E2E8F0]"
-    >
+    <View style={{ paddingTop: insets.top }} className="bg-[#F8FAFC] border-b border-[#E2E8F0]">
       <View className="flex-row items-center justify-between h-14 px-4">
         <Pressable
           onPress={onMenuPress}
@@ -92,17 +57,14 @@ function TopHeader({ onMenuPress }) {
         </Pressable>
 
         <View className="flex-row items-center">
-          <Text className="text-[15px] tracking-[2px] text-[#0F172A] font-semibold">
-            SALVATION
-          </Text>
+          <Text className="text-[15px] tracking-[2px] text-[#0F172A] font-semibold">SALVATION</Text>
           <View className="w-1 h-1 rounded-full bg-[#D97706] mx-1.5" />
-          <Text className="text-[15px] tracking-[2px] text-[#D97706] font-semibold">
-            TRUTH
-          </Text>
+          <Text className="text-[15px] tracking-[2px] text-[#D97706] font-semibold">TRUTH</Text>
         </View>
 
         <View className="w-10 h-10" />
       </View>
+      <OfflineBanner />
     </View>
   );
 }
@@ -110,18 +72,10 @@ function TopHeader({ onMenuPress }) {
 function TabIcon({ Icon, focused }) {
   return (
     <View className="items-center justify-center" style={{ height: 44 }}>
-      <Icon
-        size={23}
-        color={focused ? "#0F172A" : "#94A3B8"}
-        strokeWidth={focused ? 2.4 : 1.8}
-      />
+      <Icon size={23} color={focused ? "#0F172A" : "#94A3B8"} strokeWidth={focused ? 2.4 : 1.8} />
       <View
         className="mt-1.5 rounded-full"
-        style={{
-          width: 5,
-          height: 5,
-          backgroundColor: focused ? "#D97706" : "transparent",
-        }}
+        style={{ width: 5, height: 5, backgroundColor: focused ? "#D97706" : "transparent" }}
       />
     </View>
   );
@@ -129,14 +83,11 @@ function TabIcon({ Icon, focused }) {
 
 function RootLayoutContent() {
   const insets = useSafeAreaInsets();
-
-  const handleMenuPress = () => {
-    console.log("Menu opened");
-  };
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   return (
     <View className="flex-1 bg-[#F8FAFC]">
-      <TopHeader onMenuPress={handleMenuPress} />
+      <TopHeader onMenuPress={() => setDrawerOpen(true)} />
       <Tabs
         screenOptions={{
           headerShown: false,
@@ -157,33 +108,30 @@ function RootLayoutContent() {
       >
         <Tabs.Screen
           name="(tabs)/index"
-          options={{
-            tabBarIcon: ({ focused }) => <TabIcon Icon={Home} focused={focused} />,
-          }}
+          options={{ tabBarIcon: ({ focused }) => <TabIcon Icon={Home} focused={focused} /> }}
         />
         <Tabs.Screen
           name="(tabs)/bible"
-          options={{
-            tabBarIcon: ({ focused }) => <TabIcon Icon={BookOpen} focused={focused} />,
-          }}
+          options={{ tabBarIcon: ({ focused }) => <TabIcon Icon={BookOpen} focused={focused} /> }}
         />
         <Tabs.Screen
           name="(tabs)/profile"
-          options={{
-            tabBarIcon: ({ focused }) => <TabIcon Icon={User} focused={focused} />,
-          }}
+          options={{ tabBarIcon: ({ focused }) => <TabIcon Icon={User} focused={focused} /> }}
         />
       </Tabs>
+      <HamburgerDrawer visible={drawerOpen} onClose={() => setDrawerOpen(false)} />
     </View>
   );
 }
 
 export default function RootLayout() {
   return (
-    <SafeAreaProvider>
-      <AudioPlayerProvider>
-        <RootLayoutContent />
-      </AudioPlayerProvider>
-    </SafeAreaProvider>
+    <ErrorBoundary>
+      <SafeAreaProvider>
+        <AudioPlayerProvider>
+          <RootLayoutContent />
+        </AudioPlayerProvider>
+      </SafeAreaProvider>
+    </ErrorBoundary>
   );
 }

@@ -1,16 +1,10 @@
 import { useEffect, useRef } from "react";
 import { View, Text, Pressable, Animated, Dimensions, Linking, Share } from "react-native";
 import { router } from "expo-router";
-import {
-  X,
-  Bell,
-  HeartHandshake,
-  Mail,
-  Share2,
-  Info,
-  Settings,
-} from "lucide-react-native";
+import { X, Bell, HeartHandshake, Mail, Share2, Info, Settings, LogIn, LogOut } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTheme } from "../lib/ThemeContext";
+import { useAuth } from "../lib/AuthContext";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const DRAWER_WIDTH = Math.min(300, SCREEN_WIDTH * 0.8);
@@ -26,6 +20,8 @@ const LINKS = [
 
 export default function HamburgerDrawer({ visible, onClose }) {
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
+  const { user, isLoggedIn, logout } = useAuth();
   const translateX = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
   const overlayOpacity = useRef(new Animated.Value(0)).current;
 
@@ -68,18 +64,19 @@ export default function HamburgerDrawer({ visible, onClose }) {
       case "settings":
         router.push("/settings");
         break;
+      case "login":
+        router.push("/(auth)/login");
+        break;
+      case "logout":
+        await logout();
+        break;
       default:
         break;
     }
   };
 
   if (!visible) {
-    return (
-      <Animated.View
-        pointerEvents="none"
-        style={{ opacity: overlayOpacity, position: "absolute" }}
-      />
-    );
+    return <Animated.View pointerEvents="none" style={{ opacity: overlayOpacity, position: "absolute" }} />;
   }
 
   return (
@@ -105,7 +102,7 @@ export default function HamburgerDrawer({ visible, onClose }) {
           bottom: 0,
           left: 0,
           width: DRAWER_WIDTH,
-          backgroundColor: "#FFFFFF",
+          backgroundColor: colors.surface,
           paddingTop: insets.top + 16,
           transform: [{ translateX }],
           shadowColor: "#0F172A",
@@ -117,34 +114,53 @@ export default function HamburgerDrawer({ visible, onClose }) {
       >
         <View className="flex-row items-center justify-between px-5 mb-6">
           <View>
-            <Text className="text-[#0F172A] text-[15px] font-bold">Salvation & Truth</Text>
-            <Text className="text-[#94A3B8] text-[11.5px] mt-0.5">Guest Visitor</Text>
+            <Text style={{ color: colors.textPrimary }} className="text-[15px] font-bold">
+              {isLoggedIn ? user.name : "Guest Visitor"}
+            </Text>
+            <Text style={{ color: colors.textMuted }} className="text-[11.5px] mt-0.5">
+              {isLoggedIn ? user.email : "Not signed in"}
+            </Text>
           </View>
           <Pressable
             onPress={onClose}
-            className="w-8 h-8 rounded-full bg-[#F1F5F9] items-center justify-center"
+            style={{ backgroundColor: colors.surfaceAlt }}
+            className="w-8 h-8 rounded-full items-center justify-center"
           >
-            <X size={15} color="#0F172A" />
+            <X size={15} color={colors.textPrimary} />
           </Pressable>
         </View>
 
         <View className="px-2">
+          <Pressable
+            onPress={() => handleAction(isLoggedIn ? "logout" : "login")}
+            className="flex-row items-center px-4 py-3.5 rounded-2xl active:opacity-70"
+          >
+            <View style={{ backgroundColor: colors.surfaceAlt }} className="w-9 h-9 rounded-full items-center justify-center">
+              {isLoggedIn ? <LogOut size={16} color={colors.textPrimary} /> : <LogIn size={16} color={colors.textPrimary} />}
+            </View>
+            <Text style={{ color: colors.textSecondary }} className="text-[14px] font-medium ml-3">
+              {isLoggedIn ? "Log Out" : "Sign In / Create Account"}
+            </Text>
+          </Pressable>
+
           {LINKS.map(({ key, label, Icon, action }) => (
             <Pressable
               key={key}
               onPress={() => handleAction(action)}
-              className="flex-row items-center px-4 py-3.5 rounded-2xl active:bg-[#F1F5F9]"
+              className="flex-row items-center px-4 py-3.5 rounded-2xl active:opacity-70"
             >
-              <View className="w-9 h-9 rounded-full bg-[#F1F5F9] items-center justify-center">
-                <Icon size={16} color="#0F172A" />
+              <View style={{ backgroundColor: colors.surfaceAlt }} className="w-9 h-9 rounded-full items-center justify-center">
+                <Icon size={16} color={colors.textPrimary} />
               </View>
-              <Text className="text-[#1E293B] text-[14px] font-medium ml-3">{label}</Text>
+              <Text style={{ color: colors.textSecondary }} className="text-[14px] font-medium ml-3">{label}</Text>
             </Pressable>
           ))}
         </View>
 
         <View className="absolute bottom-8 left-0 right-0 items-center">
-          <Text className="text-[#CBD5E1] text-[11px]">Salvation and Truth © {new Date().getFullYear()}</Text>
+          <Text style={{ color: colors.textMuted }} className="text-[11px]">
+            Salvation and Truth © {new Date().getFullYear()}
+          </Text>
         </View>
       </Animated.View>
     </View>

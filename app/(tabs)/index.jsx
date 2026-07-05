@@ -1,41 +1,31 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import {
   View,
   Text,
   ScrollView,
-  Image,
   Pressable,
   Animated,
   Dimensions,
+  ActivityIndicator,
+  Modal,
+  TextInput,
 } from "react-native";
-import { Play, Pause, Heart, MessageCircle, Share2, Gauge } from "lucide-react-native";
-import { ActivityIndicator } from "react-native";
+import { router } from "expo-router";
+import { Play, Pause, Heart, MessageCircle, Share2, Gauge, Plus, X } from "lucide-react-native";
 import { useAudioPlayer } from "../_layout";
+import { useAuth } from "../../lib/AuthContext";
+import { useTheme } from "../../lib/ThemeContext";
+import { PostsStore, ReactionsStore } from "../../lib/storage";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 const ANNOUNCEMENTS = [
-  {
-    id: "a1",
-    title: "Annual Youth Summit",
-    subtitle: "Aug 14 – 16 · Main Auditorium",
-    tint: "#0F172A",
-  },
-  {
-    id: "a2",
-    title: "Night of Intercession",
-    subtitle: "Every last Friday · 9PM",
-    tint: "#D97706",
-  },
-  {
-    id: "a3",
-    title: "Marriage & Covenant Class",
-    subtitle: "Starts Sept 3 · Room 204",
-    tint: "#0F172A",
-  },
+  { id: "a1", title: "Annual Youth Summit", subtitle: "Aug 14 – 16 · Main Auditorium" },
+  { id: "a2", title: "Night of Intercession", subtitle: "Every last Friday · 9PM" },
+  { id: "a3", title: "Marriage & Covenant Class", subtitle: "Starts Sept 3 · Room 204" },
 ];
 
-const FEED = [
+const SEED_FEED = [
   {
     id: "p1",
     type: "text",
@@ -57,11 +47,10 @@ const FEED = [
   },
   {
     id: "p3",
-    type: "image",
+    type: "text",
     author: "Salvation and Truth Media",
     timeAgo: "2 days ago",
     body: "Sunday's altar call — 47 souls surrendered to Christ. Heaven is rejoicing.",
-    imageColor: "#0F172A",
   },
   {
     id: "p4",
@@ -75,6 +64,7 @@ const FEED = [
 ];
 
 function LiveBanner() {
+  const { colors } = useTheme();
   const pulse = useRef(new Animated.Value(0)).current;
   const [isLive] = useState(true);
 
@@ -96,7 +86,7 @@ function LiveBanner() {
 
   return (
     <Pressable className="mx-5 mt-4 rounded-[22px] overflow-hidden active:opacity-90">
-      <View className="bg-[#0F172A] px-4 py-3.5 flex-row items-center justify-between rounded-[22px]">
+      <View style={{ backgroundColor: colors.navy }} className="px-4 py-3.5 flex-row items-center justify-between rounded-[22px]">
         <View className="flex-row items-center">
           <View className="w-2.5 h-2.5 rounded-full bg-[#EF4444] items-center justify-center mr-3">
             <Animated.View
@@ -111,11 +101,9 @@ function LiveBanner() {
               }}
             />
           </View>
-          <Text className="text-white text-[13.5px] font-semibold">
-            Live Prayer Happening Now
-          </Text>
+          <Text className="text-white text-[13.5px] font-semibold">Live Prayer Happening Now</Text>
         </View>
-        <View className="bg-[#D97706] px-3 py-1.5 rounded-full">
+        <View style={{ backgroundColor: colors.gold }} className="px-3 py-1.5 rounded-full">
           <Text className="text-white text-[11px] font-bold">JOIN</Text>
         </View>
       </View>
@@ -124,16 +112,11 @@ function LiveBanner() {
 }
 
 function AnnouncementsScroller() {
+  const { colors } = useTheme();
   return (
     <View className="mt-6">
-      <Text className="text-[#0F172A] text-[17px] font-bold px-5 mb-3">
-        Upcoming
-      </Text>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingLeft: 20, paddingRight: 8 }}
-      >
+      <Text style={{ color: colors.textPrimary }} className="text-[17px] font-bold px-5 mb-3">Upcoming</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingLeft: 20, paddingRight: 8 }}>
         {ANNOUNCEMENTS.map((item, idx) => (
           <View
             key={item.id}
@@ -141,48 +124,20 @@ function AnnouncementsScroller() {
               width: SCREEN_WIDTH * 0.62,
               marginRight: 12,
               borderRadius: idx % 2 === 0 ? 26 : 18,
+              backgroundColor: colors.surface,
+              borderWidth: 1,
+              borderColor: colors.border,
             }}
             className="p-5 justify-between"
           >
             <View
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                backgroundColor: item.tint,
-                borderRadius: idx % 2 === 0 ? 26 : 18,
-                opacity: 0.06,
-              }}
-            />
-            <View
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                borderWidth: 1.5,
-                borderColor: item.tint,
-                borderRadius: idx % 2 === 0 ? 26 : 18,
-                opacity: 0.12,
-              }}
-            />
-            <View
+              style={{ backgroundColor: colors.navy }}
               className="w-9 h-9 rounded-full items-center justify-center mb-8"
-              style={{ backgroundColor: item.tint }}
             >
-              <Text className="text-white text-[13px] font-bold">
-                {item.title.charAt(0)}
-              </Text>
+              <Text style={{ color: colors.gold }} className="text-[13px] font-bold">{item.title.charAt(0)}</Text>
             </View>
-            <Text className="text-[#0F172A] text-[15px] font-bold leading-5">
-              {item.title}
-            </Text>
-            <Text className="text-[#64748B] text-[12.5px] mt-1">
-              {item.subtitle}
-            </Text>
+            <Text style={{ color: colors.textPrimary }} className="text-[15px] font-bold leading-5">{item.title}</Text>
+            <Text style={{ color: colors.textMuted }} className="text-[12.5px] mt-1">{item.subtitle}</Text>
           </View>
         ))}
       </ScrollView>
@@ -197,37 +152,77 @@ function formatMillis(millis) {
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
+function PostHeader({ author, timeAgo }) {
+  const { colors } = useTheme();
+  return (
+    <View className="flex-row items-center">
+      <View style={{ backgroundColor: colors.navy }} className="w-10 h-10 rounded-full items-center justify-center">
+        <Text style={{ color: colors.gold }} className="text-[13px] font-bold">
+          {author.split(" ").map((n) => n.charAt(0)).slice(0, 2).join("")}
+        </Text>
+      </View>
+      <View className="ml-3">
+        <Text style={{ color: colors.textPrimary }} className="text-[13.5px] font-semibold">{author}</Text>
+        <Text style={{ color: colors.textMuted }} className="text-[11.5px] mt-0.5">{timeAgo}</Text>
+      </View>
+    </View>
+  );
+}
+
+function PostFooter({ postId }) {
+  const { colors } = useTheme();
+  const { user, isLoggedIn } = useAuth();
+  const [likeState, setLikeState] = useState({ count: 0, isLiked: false });
+
+  useEffect(() => {
+    ReactionsStore.getLikeState(postId, user?.id).then(setLikeState);
+  }, [postId, user?.id]);
+
+  const handleLike = async () => {
+    if (!isLoggedIn) {
+      router.push("/(auth)/login");
+      return;
+    }
+    const { likedBy, isLiked } = await ReactionsStore.toggleLike(postId, user.id);
+    setLikeState({ count: likedBy.length, isLiked });
+  };
+
+  return (
+    <View className="flex-row items-center mt-4 pt-3.5" style={{ borderTopWidth: 1, borderTopColor: colors.border }}>
+      <Pressable onPress={handleLike} className="flex-row items-center mr-6 active:opacity-60">
+        <Heart
+          size={16}
+          color={likeState.isLiked ? "#EF4444" : colors.textMuted}
+          fill={likeState.isLiked ? "#EF4444" : "transparent"}
+        />
+        <Text style={{ color: colors.textMuted }} className="text-[12px] ml-1.5 font-medium">{likeState.count}</Text>
+      </Pressable>
+      <Pressable className="flex-row items-center mr-6 active:opacity-60">
+        <MessageCircle size={16} color={colors.textMuted} />
+      </Pressable>
+      <Pressable className="flex-row items-center active:opacity-60">
+        <Share2 size={16} color={colors.textMuted} />
+      </Pressable>
+    </View>
+  );
+}
+
 function AudioPostCard({ post }) {
-  const {
-    currentTrack,
-    isPlaying,
-    isBuffering,
-    positionMillis,
-    durationMillis,
-    playbackRate,
-    play,
-    togglePlayback,
-    setRate,
-  } = useAudioPlayer();
+  const { colors } = useTheme();
+  const { currentTrack, isPlaying, isBuffering, positionMillis, durationMillis, playbackRate, play, togglePlayback, setRate } =
+    useAudioPlayer();
 
   const isThisTrack = currentTrack?.id === post.id;
   const displayPositionMillis = isThisTrack ? positionMillis : 0;
   const displayDurationMillis = isThisTrack && durationMillis ? durationMillis : null;
-  const progressPct = displayDurationMillis
-    ? Math.min(100, (displayPositionMillis / displayDurationMillis) * 100)
-    : 0;
+  const progressPct = displayDurationMillis ? Math.min(100, (displayPositionMillis / displayDurationMillis) * 100) : 0;
   const showBuffering = isThisTrack && isBuffering;
 
   const handlePlayPress = () => {
     if (isThisTrack) {
       togglePlayback();
     } else {
-      play({
-        id: post.id,
-        title: post.title,
-        author: post.author,
-        audioUri: post.audioUri,
-      });
+      play({ id: post.id, title: post.title, author: post.author, audioUri: post.audioUri });
     }
   };
 
@@ -239,23 +234,18 @@ function AudioPostCard({ post }) {
 
   return (
     <View
-      className="mx-5 mb-4 bg-white rounded-[24px] p-5"
-      style={{
-        shadowColor: "#0F172A",
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.06,
-        shadowRadius: 20,
-        elevation: 2,
-      }}
+      style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
+      className="mx-5 mb-4 rounded-[24px] p-5"
     >
       <PostHeader author={post.author} timeAgo={post.timeAgo} />
 
-      <View className="mt-4 bg-[#F1F5F9] rounded-[20px] p-4">
+      <View style={{ backgroundColor: colors.surfaceAlt }} className="mt-4 rounded-[20px] p-4">
         <View className="flex-row items-center">
           <Pressable
             onPress={handlePlayPress}
             disabled={showBuffering}
-            className="w-12 h-12 rounded-full bg-[#0F172A] items-center justify-center active:opacity-80"
+            style={{ backgroundColor: colors.navy }}
+            className="w-12 h-12 rounded-full items-center justify-center active:opacity-80"
           >
             {showBuffering ? (
               <ActivityIndicator size="small" color="#F8FAFC" />
@@ -267,153 +257,166 @@ function AudioPostCard({ post }) {
           </Pressable>
 
           <View className="flex-1 ml-3.5">
-            <Text className="text-[#0F172A] text-[14.5px] font-semibold leading-5" numberOfLines={2}>
+            <Text style={{ color: colors.textPrimary }} className="text-[14.5px] font-semibold leading-5" numberOfLines={2}>
               {post.title}
             </Text>
-            <Text className="text-[#94A3B8] text-[11.5px] mt-1">Voice Note · Sermon</Text>
+            <Text style={{ color: colors.textMuted }} className="text-[11.5px] mt-1">Voice Note · Sermon</Text>
           </View>
 
           <Pressable
             onPress={handleRateCycle}
-            className="bg-white px-2.5 py-1.5 rounded-full flex-row items-center ml-2"
-            style={{ borderWidth: 1, borderColor: "#E2E8F0" }}
+            style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
+            className="px-2.5 py-1.5 rounded-full flex-row items-center ml-2"
           >
-            <Gauge size={12} color="#0F172A" />
-            <Text className="text-[#0F172A] text-[11px] font-semibold ml-1">
+            <Gauge size={12} color={colors.textPrimary} />
+            <Text style={{ color: colors.textPrimary }} className="text-[11px] font-semibold ml-1">
               {isThisTrack ? `${playbackRate}x` : "1x"}
             </Text>
           </Pressable>
         </View>
 
         <View className="mt-4">
-          <View className="h-1.5 bg-[#E2E8F0] rounded-full overflow-hidden">
-            <View
-              className="h-1.5 bg-[#D97706] rounded-full"
-              style={{ width: `${progressPct}%` }}
-            />
+          <View style={{ backgroundColor: colors.border }} className="h-1.5 rounded-full overflow-hidden">
+            <View style={{ width: `${progressPct}%`, backgroundColor: colors.gold }} className="h-1.5 rounded-full" />
           </View>
           <View className="flex-row justify-between mt-1.5">
-            <Text className="text-[#94A3B8] text-[11px] font-medium">
-              {formatMillis(displayPositionMillis)}
-            </Text>
-            <Text className="text-[#94A3B8] text-[11px] font-medium">
+            <Text style={{ color: colors.textMuted }} className="text-[11px] font-medium">{formatMillis(displayPositionMillis)}</Text>
+            <Text style={{ color: colors.textMuted }} className="text-[11px] font-medium">
               {displayDurationMillis ? formatMillis(displayDurationMillis) : post.durationLabel}
             </Text>
           </View>
         </View>
       </View>
 
-      <PostFooter />
-    </View>
-  );
-}
-
-function PostHeader({ author, timeAgo }) {
-  return (
-    <View className="flex-row items-center">
-      <View className="w-10 h-10 rounded-full bg-[#0F172A] items-center justify-center">
-        <Text className="text-[#D97706] text-[13px] font-bold">
-          {author.split(" ").map((n) => n.charAt(0)).slice(0, 2).join("")}
-        </Text>
-      </View>
-      <View className="ml-3">
-        <Text className="text-[#0F172A] text-[13.5px] font-semibold">{author}</Text>
-        <Text className="text-[#94A3B8] text-[11.5px] mt-0.5">{timeAgo}</Text>
-      </View>
-    </View>
-  );
-}
-
-function PostFooter() {
-  return (
-    <View className="flex-row items-center mt-4 pt-3.5" style={{ borderTopWidth: 1, borderTopColor: "#F1F5F9" }}>
-      <Pressable className="flex-row items-center mr-6 active:opacity-60">
-        <Heart size={16} color="#94A3B8" />
-        <Text className="text-[#94A3B8] text-[12px] ml-1.5 font-medium">142</Text>
-      </Pressable>
-      <Pressable className="flex-row items-center mr-6 active:opacity-60">
-        <MessageCircle size={16} color="#94A3B8" />
-        <Text className="text-[#94A3B8] text-[12px] ml-1.5 font-medium">18</Text>
-      </Pressable>
-      <Pressable className="flex-row items-center active:opacity-60">
-        <Share2 size={16} color="#94A3B8" />
-      </Pressable>
+      <PostFooter postId={post.id} />
     </View>
   );
 }
 
 function TextPostCard({ post }) {
+  const { colors } = useTheme();
   return (
     <View
-      className="mx-5 mb-4 bg-white rounded-[24px] p-5"
-      style={{
-        shadowColor: "#0F172A",
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.06,
-        shadowRadius: 20,
-        elevation: 2,
-      }}
+      style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
+      className="mx-5 mb-4 rounded-[24px] p-5"
     >
       <PostHeader author={post.author} timeAgo={post.timeAgo} />
-      <Text className="text-[#1E293B] text-[14.5px] leading-6 mt-4">{post.body}</Text>
+      <Text style={{ color: colors.textSecondary, fontFamily: "Georgia" }} className="text-[14.5px] leading-6 mt-4">
+        {post.body}
+      </Text>
       {post.verse ? (
-        <View className="mt-3 self-start bg-[#FEF3E2] px-3 py-1.5 rounded-full">
-          <Text className="text-[#D97706] text-[12px] font-semibold">{post.verse}</Text>
+        <View style={{ backgroundColor: colors.surfaceAlt }} className="mt-3 self-start px-3 py-1.5 rounded-full">
+          <Text style={{ color: colors.gold }} className="text-[12px] font-semibold">{post.verse}</Text>
         </View>
       ) : null}
-      <PostFooter />
+      <PostFooter postId={post.id} />
     </View>
   );
 }
 
-function ImagePostCard({ post }) {
+function AdminComposer({ onPosted }) {
+  const { colors } = useTheme();
+  const { user } = useAuth();
+  const [open, setOpen] = useState(false);
+  const [body, setBody] = useState("");
+  const [posting, setPosting] = useState(false);
+
+  const handlePost = async () => {
+    if (!body.trim()) return;
+    setPosting(true);
+    await PostsStore.create({
+      type: "text",
+      author: user.name,
+      timeAgo: "Just now",
+      body: body.trim(),
+    });
+    setPosting(false);
+    setBody("");
+    setOpen(false);
+    onPosted();
+  };
+
   return (
-    <View
-      className="mx-5 mb-4 bg-white rounded-[24px] overflow-hidden"
-      style={{
-        shadowColor: "#0F172A",
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.06,
-        shadowRadius: 20,
-        elevation: 2,
-      }}
-    >
-      <View className="p-5 pb-3">
-        <PostHeader author={post.author} timeAgo={post.timeAgo} />
-      </View>
-      <View
-        style={{ height: 190, backgroundColor: post.imageColor, opacity: 0.9 }}
-        className="mx-5 rounded-[18px] items-center justify-center"
+    <>
+      <Pressable
+        onPress={() => setOpen(true)}
+        style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderStyle: "dashed" }}
+        className="mx-5 mb-4 rounded-[20px] px-4 py-3.5 flex-row items-center"
       >
-        <Text className="text-white/40 text-[12px] font-medium">Sunday Service Photo</Text>
-      </View>
-      <View className="p-5 pt-3">
-        <Text className="text-[#1E293B] text-[14px] leading-5">{post.body}</Text>
-        <PostFooter />
-      </View>
-    </View>
+        <View style={{ backgroundColor: colors.navy }} className="w-8 h-8 rounded-full items-center justify-center">
+          <Plus size={15} color={colors.gold} />
+        </View>
+        <Text style={{ color: colors.textMuted }} className="text-[13.5px] ml-3">Share something with the church...</Text>
+      </Pressable>
+
+      <Modal visible={open} animationType="slide" transparent onRequestClose={() => setOpen(false)}>
+        <View className="flex-1 bg-black/40 justify-end">
+          <View style={{ backgroundColor: colors.bg }} className="rounded-t-[28px] p-6">
+            <View className="flex-row items-center justify-between mb-5">
+              <Text style={{ color: colors.textPrimary }} className="text-[17px] font-bold">New Post</Text>
+              <Pressable
+                onPress={() => setOpen(false)}
+                style={{ backgroundColor: colors.surfaceAlt }}
+                className="w-8 h-8 rounded-full items-center justify-center"
+              >
+                <X size={15} color={colors.textPrimary} />
+              </Pressable>
+            </View>
+            <TextInput
+              value={body}
+              onChangeText={setBody}
+              placeholder="Write a word of encouragement..."
+              placeholderTextColor={colors.textMuted}
+              multiline
+              style={{ color: colors.textPrimary, backgroundColor: colors.surface, borderColor: colors.border, minHeight: 110, textAlignVertical: "top" }}
+              className="rounded-2xl p-4 text-[14.5px]"
+            />
+            <Pressable
+              onPress={handlePost}
+              disabled={posting || !body.trim()}
+              style={{ backgroundColor: colors.navy, opacity: posting || !body.trim() ? 0.6 : 1 }}
+              className="mt-4 rounded-2xl py-4 items-center"
+            >
+              {posting ? <ActivityIndicator color="#FFFFFF" size="small" /> : <Text className="text-white text-[14px] font-semibold">Post to Feed</Text>}
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+    </>
   );
 }
 
 export default function HomeScreen() {
+  const { colors } = useTheme();
+  const { isAdmin } = useAuth();
+  const [customPosts, setCustomPosts] = useState([]);
+
+  const loadPosts = useCallback(() => {
+    PostsStore.getAll().then(setCustomPosts);
+  }, []);
+
+  useEffect(() => {
+    loadPosts();
+  }, [loadPosts]);
+
+  const feed = [...customPosts, ...SEED_FEED];
+
   return (
-    <ScrollView
-      className="flex-1 bg-[#F8FAFC]"
-      contentContainerStyle={{ paddingBottom: 32 }}
-      showsVerticalScrollIndicator={false}
-    >
+    <ScrollView style={{ backgroundColor: colors.bg }} contentContainerStyle={{ paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
       <LiveBanner />
       <AnnouncementsScroller />
 
-      <Text className="text-[#0F172A] text-[17px] font-bold px-5 mt-7 mb-3">
-        Pastor's Feed
-      </Text>
+      <Text style={{ color: colors.textPrimary }} className="text-[17px] font-bold px-5 mt-7 mb-3">Pastor's Feed</Text>
 
-      {FEED.map((post) => {
-        if (post.type === "audio") return <AudioPostCard key={post.id} post={post} />;
-        if (post.type === "image") return <ImagePostCard key={post.id} post={post} />;
-        return <TextPostCard key={post.id} post={post} />;
-      })}
+      {isAdmin ? <AdminComposer onPosted={loadPosts} /> : null}
+
+      {feed.map((post) =>
+        post.type === "audio" ? (
+          <AudioPostCard key={post.id} post={post} />
+        ) : (
+          <TextPostCard key={post.id} post={post} />
+        )
+      )}
     </ScrollView>
   );
 }

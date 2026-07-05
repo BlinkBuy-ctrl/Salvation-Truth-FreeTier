@@ -1,3 +1,4 @@
+import "../global.css";
 import { createContext, useContext, useState } from "react";
 import { View, Text, Pressable } from "react-native";
 import { Tabs } from "expo-router";

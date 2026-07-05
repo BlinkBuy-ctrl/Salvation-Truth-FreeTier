@@ -10,6 +10,8 @@ import ErrorBoundary from "../components/ErrorBoundary";
 import OfflineBanner from "../components/OfflineBanner";
 import HamburgerDrawer from "../components/HamburgerDrawer";
 import { useAudioEngine } from "../lib/useAudioEngine";
+import { ThemeProvider, useTheme } from "../lib/ThemeContext";
+import { AuthProvider } from "../lib/AuthContext";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -42,25 +44,32 @@ function AudioPlayerProvider({ children }) {
 
 function TopHeader({ onMenuPress }) {
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
   return (
-    <View style={{ paddingTop: insets.top }} className="bg-[#F8FAFC] border-b border-[#E2E8F0]">
+    <View
+      style={{ paddingTop: insets.top, backgroundColor: colors.headerBg, borderBottomWidth: 1, borderBottomColor: colors.border }}
+    >
       <View className="flex-row items-center justify-between h-14 px-4">
         <Pressable
           onPress={onMenuPress}
           hitSlop={12}
-          className="w-10 h-10 items-center justify-center rounded-xl active:bg-[#F1F5F9]"
+          className="w-10 h-10 items-center justify-center rounded-xl active:opacity-60"
         >
-          <View className="items-start justify-center" style={{ gap: 4 }}>
-            <View className="w-5 h-[2px] bg-[#0F172A] rounded-full" />
-            <View className="w-5 h-[2px] bg-[#0F172A] rounded-full" />
-            <View className="w-3 h-[2px] bg-[#D97706] rounded-full" />
+          <View style={{ alignItems: "flex-start", justifyContent: "center", gap: 4 }}>
+            <View style={{ width: 20, height: 2, borderRadius: 999, backgroundColor: colors.textPrimary }} />
+            <View style={{ width: 20, height: 2, borderRadius: 999, backgroundColor: colors.textPrimary }} />
+            <View style={{ width: 12, height: 2, borderRadius: 999, backgroundColor: colors.gold }} />
           </View>
         </Pressable>
 
         <View className="flex-row items-center">
-          <Text className="text-[15px] tracking-[2px] text-[#0F172A] font-semibold">SALVATION</Text>
-          <View className="w-1 h-1 rounded-full bg-[#D97706] mx-1.5" />
-          <Text className="text-[15px] tracking-[2px] text-[#D97706] font-semibold">TRUTH</Text>
+          <Text style={{ color: colors.textPrimary }} className="text-[15px] tracking-[2px] font-semibold">
+            SALVATION
+          </Text>
+          <View style={{ width: 4, height: 4, borderRadius: 999, backgroundColor: colors.gold, marginHorizontal: 6 }} />
+          <Text style={{ color: colors.gold }} className="text-[15px] tracking-[2px] font-semibold">
+            TRUTH
+          </Text>
         </View>
 
         <View className="w-10 h-10" />
@@ -70,13 +79,18 @@ function TopHeader({ onMenuPress }) {
   );
 }
 
-function TabIcon({ Icon, focused }) {
+function TabIcon({ Icon, focused, colors }) {
   return (
-    <View className="items-center justify-center" style={{ height: 44 }}>
-      <Icon size={23} color={focused ? "#0F172A" : "#94A3B8"} strokeWidth={focused ? 2.4 : 1.8} />
+    <View style={{ alignItems: "center", justifyContent: "center", height: 44 }}>
+      <Icon size={23} color={focused ? colors.textPrimary : colors.textMuted} strokeWidth={focused ? 2.4 : 1.8} />
       <View
-        className="mt-1.5 rounded-full"
-        style={{ width: 5, height: 5, backgroundColor: focused ? "#D97706" : "transparent" }}
+        style={{
+          marginTop: 6,
+          width: 5,
+          height: 5,
+          borderRadius: 999,
+          backgroundColor: focused ? colors.gold : "transparent",
+        }}
       />
     </View>
   );
@@ -85,17 +99,19 @@ function TabIcon({ Icon, focused }) {
 function RootLayoutContent() {
   const insets = useSafeAreaInsets();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const { colors } = useTheme();
 
   return (
-    <View className="flex-1 bg-[#F8FAFC]">
+    <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <TopHeader onMenuPress={() => setDrawerOpen(true)} />
       <Tabs
         screenOptions={{
           headerShown: false,
           tabBarShowLabel: false,
           tabBarStyle: {
-            backgroundColor: "#FFFFFF",
-            borderTopWidth: 0,
+            backgroundColor: colors.tabBarBg,
+            borderTopWidth: 1,
+            borderTopColor: colors.border,
             elevation: 0,
             height: 64 + insets.bottom,
             paddingBottom: insets.bottom,
@@ -109,15 +125,15 @@ function RootLayoutContent() {
       >
         <Tabs.Screen
           name="(tabs)/index"
-          options={{ tabBarIcon: ({ focused }) => <TabIcon Icon={Home} focused={focused} /> }}
+          options={{ tabBarIcon: ({ focused }) => <TabIcon Icon={Home} focused={focused} colors={colors} /> }}
         />
         <Tabs.Screen
           name="(tabs)/bible"
-          options={{ tabBarIcon: ({ focused }) => <TabIcon Icon={BookOpen} focused={focused} /> }}
+          options={{ tabBarIcon: ({ focused }) => <TabIcon Icon={BookOpen} focused={focused} colors={colors} /> }}
         />
         <Tabs.Screen
           name="(tabs)/profile"
-          options={{ tabBarIcon: ({ focused }) => <TabIcon Icon={User} focused={focused} /> }}
+          options={{ tabBarIcon: ({ focused }) => <TabIcon Icon={User} focused={focused} colors={colors} /> }}
         />
       </Tabs>
       <HamburgerDrawer visible={drawerOpen} onClose={() => setDrawerOpen(false)} />
@@ -129,9 +145,13 @@ export default function RootLayout() {
   return (
     <ErrorBoundary>
       <SafeAreaProvider>
-        <AudioPlayerProvider>
-          <RootLayoutContent />
-        </AudioPlayerProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <AudioPlayerProvider>
+              <RootLayoutContent />
+            </AudioPlayerProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </SafeAreaProvider>
     </ErrorBoundary>
   );
